@@ -1,0 +1,31 @@
+---
+- name: Convert documents for RAG (run manually after setup)
+  hosts: ilab_servers
+  vars:
+    ilab_user: "{{ ansible_user }}"
+    ilab_home: "/home/{{ ilab_user }}"
+    venv_path: "{{ ilab_home }}/ilab-venv"
+    document_dir: "{{ ilab_home }}/documents"
+    converted_dir: "{{ ilab_home }}/converted-documents"
+    
+  tasks:
+    - name: Create converted documents directory
+      file:
+        path: "{{ converted_dir }}"
+        state: directory
+        owner: "{{ ilab_user }}"
+        group: "{{ ilab_user }}"
+        mode: '0755'
+      become_user: "{{ ilab_user }}"
+
+    - name: Convert documents for RAG
+      command: >
+        {{ venv_path }}/bin/ilab rag convert 
+        --taxonomy-base=empty 
+        --output-dir {{ converted_dir }}
+      args:
+        chdir: "{{ document_dir }}"
+      become_user: "{{ ilab_user }}"
+      environment:
+        PATH: "{{ venv_path }}/bin:{{ ansible_env.PATH }}"
+      when: document_dir is directory

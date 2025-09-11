@@ -1,0 +1,127 @@
+---
+- name: Setup InstructLab on Ubuntu 24
+  hosts: ilab_servers
+  become: yes
+  vars:
+    ilab_user: "{{ ansible_user }}"
+    ilab_home: "/home/{{ ilab_user }}"
+    venv_path: "{{ ilab_home }}/ilab-venv"
+    python_version: "3.11"
+    
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+
+    - name: Upgrade all packages
+      apt:
+        upgrade: dist
+        autoremove: yes
+        autoclean: yes
+
+    - name: Install base system packages
+      apt:
+        name:
+          - build-essential
+          - git
+          - curl
+          - wget
+          - software-properties-common
+          - ca-certificates
+          - gnupg
+          - lsb-release
+        state: present
+
+    - name: Install mise (asdf successor)
+      shell: |
+        curl https://mise.run | sh
+      args:
+        creates: "{{ ilab_home }}/.local/bin/mise"
+        executable: /bin/bash
+      become_user: "{{ ilab_user }}"
+
+    - name: Install Python 3.11 via mise
+      shell: |
+        export PATH="$HOME/.local/bin:$PATH"
+        mise install python@3.11
+        mise use --global python@3.11
+      args:
+        creates: "{{ ilab_home }}/.local/share/mise/installs/python/3.11"
+        executable: /bin/bash
+      become_user: "{{ ilab_user }}"
+      environment:
+        PATH: "{{ ilab_home }}/.local/bin:{{ ansible_env.PATH }}"
+
+    - name: Create ilab user directory structure
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ilab_user }}"
+        group: "{{ ilab_user }}"
+        mode: '0755'
+      loop:
+        - "{{ ilab_home }}/ilab-data"
+        - "{{ ilab_home }}/models"
+        - "{{ ilab_home }}/documents"
+      become_user: "{{ ilab_user }}"
+
+    - name: Create Python virtual environment
+      shell: |
+        export PATH="$HOME/.local/bin:$PATH"
+        eval "$(mise activate bash)"
+        python -m venv {{ venv_path }}
+      args:
+        creates: "{{ venv_path }}/bin/python"
+        executable: /bin/bash
+      become_user: "{{ ilab_user }}"
+      environment:
+        PATH: "{{ ilab_home }}/.local/bin:{{ ansible_env.PATH }}"
+
+    - name: Upgrade pip in virtual environment
+      shell: |
+        {{ venv_path }}/bin/python -m pip install --upgrade pip
+      become_user: "{{ ilab_user }}"
+
+    - name: Install instructlab in virtual environment
+      shell: |
+        {{ venv_path }}/bin/python -m pip install instructlab[mps]
+      become_user: "{{ ilab_user }}"
+
+    - name: Initialize ilab configuration
+      command: "{{ venv_path }}/bin/ilab config init --non-interactive --min-taxonomy"
+      args:
+        creates: "{{ ilab_home }}/.config/instructlab/config.yaml"
+      become_user: "{{ ilab_user }}"
+      environment:
+        PATH: "{{ venv_path }}/bin:{{ ansible_env.PATH }}"
+
+    # - name: Download granite embedding model
+    #   command: "{{ venv_path }}/bin/ilab model download -rp ibm-granite/granite-embedding-english-r2"
+    #   args:
+    #     chdir: "{{ ilab_home }}"
+    #   become_user: "{{ ilab_user }}"
+    #   environment:
+    #     PATH: "{{ venv_path }}/bin:{{ ansible_env.PATH }}"
+    #   register: model_download
+    #   changed_when: "'already exists' not in model_download.stdout"
+
+    - name: Display ilab version
+      command: "{{ venv_path }}/bin/ilab --version"
+      become_user: "{{ ilab_user }}"
+      register: ilab_version
+      changed_when: false
+
+    - name: Show ilab installation status
+      debug:
+        msg: "InstructLab {{ ilab_version.stdout }} installed successfully in {{ venv_path }}"
+
+    - name: Download SMOL model for quicker data generation
+      command: "{{ venv_path }}/bin/ilab model download -rp HuggingFaceTB/SmolVLM-Instruct"
+      args:
+        chdir: "{{ ilab_home }}"
+      become_user: "{{ ilab_user }}"
+      environment:
+        PATH: "{{ venv_path }}/bin:{{ ansible_env.PATH }}"
+      register: smol_model_download
+      changed_when: "'already exists' not in smol_model_download.stdout"
