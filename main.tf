@@ -106,9 +106,9 @@ resource "ibm_is_instance" "lab" {
   image          = data.ibm_is_image.base.id
   profile        = var.instance_profile
   resource_group = module.resource_group.resource_group_id
-  user_data      = base64encode(templatefile("${path.module}/cloud-init.yaml", {
+  user_data      = templatefile("${path.module}/cloud-init.yaml", {
     ssh_public_key = var.existing_ssh_key != "" ? data.ibm_is_ssh_key.sshkey.public_key : tls_private_key.ssh[0].public_key_openssh
-  }))
+  })
 
   metadata_service {
     enabled            = true

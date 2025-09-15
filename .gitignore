@@ -41,3 +41,8 @@ terraform.rc
 
 # Ansible
 inventory.ini
+
+## Python
+.venv/
+venv/
+.env

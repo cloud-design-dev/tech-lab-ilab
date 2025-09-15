@@ -64,17 +64,17 @@ This project provisions and configures an InstructLab environment on IBM Cloud V
 5. **Connect to your instance**:
    ```bash
    # SSH command will be displayed in terraform output
-   ssh -i ./ilab.pem ubuntu@<floating-ip>
+   ssh -i ./ilab.pem ilab@<floating-ip>
    ```
 
 ## Configuration Variables
 
 | Variable | Description | Default | Required |
 |----------|-------------|---------|----------|
-| `existing_resource_group` | IBM Cloud resource group name | - | Yes |
+| `existing_resource_group` | IBM Cloud resource group name |  | Yes |
 | `region` | IBM Cloud region | `us-south` | No |
 | `prefix` | Resource name prefix | `ilab` | No |
-| `existing_ssh_key` | Existing SSH key name | `rst-us-south` | No |
+| `existing_ssh_key` | Existing SSH key name | `""` | No |
 | `instance_profile` | VM instance profile | `bx2-4x16` | No |
 | `image_name` | Ubuntu image name | `ibm-ubuntu-24-04-3-minimal-amd64-1` | No |
 | `allowed_ssh_cidr` | SSH access CIDR block | `0.0.0.0/0` | No |

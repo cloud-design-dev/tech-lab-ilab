@@ -1,4 +1,13 @@
 #cloud-config
+package_update: true
+package_upgrade: true
+packages:
+    - python3-pip
+    - build-essential
+    - unzip
+    - jq
+    - git
+    - ssh-import-id
 users:
   - name: ilab
     groups: sudo
@@ -7,25 +16,3 @@ users:
     ssh_authorized_keys:
       - ${ssh_public_key}
     lock_passwd: true
-
-package_update: true
-package_upgrade: true
-
-packages:
-  - curl
-  - wget
-  - git
-  - build-essential
-
-# Ensure SSH service is running
-runcmd:
-  - systemctl enable ssh
-  - systemctl start ssh
-  - usermod -aG sudo ilab
-
-# Set timezone
-timezone: UTC
-
-# Configure SSH
-ssh_pwauth: false
-disable_root: true
